@@ -29,7 +29,8 @@ def web_response(request):
 
 def chat_login(args):
     request = create_request(args.chaturl + '/api/v1/login')
-    request.add_data('{"user":"' + args.chatuser + '","password":"' + args.chatpassword + '"}')
+    content = { 'user': args.chatuser, 'password': args.chatpassword }
+    request.add_data(json.dumps(content))
 
     data = web_response(request)
 
@@ -43,7 +44,8 @@ def chat_message(data, args):
     request = create_request(args.chaturl + '/api/v1/chat.postMessage')
     request.add_header('X-Auth-Token', data[u'authToken'])
     request.add_header('X-User-Id', data[u'userId'])
-    request.add_data('{"text":"' + args.message + '","channel":"' + args.chatchannel + '"}')
+    content = { 'text': args.message, 'channel': args.chatchannel }
+    request.add_data(json.dumps(content))
 
     data = web_response(request)
 
