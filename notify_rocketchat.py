@@ -83,7 +83,7 @@ if __name__ == "__main__":
     if data == False:
         sys.exit(1)
 
-    if chat_message(data, args) == False
+    if chat_message(data, args) == False:
         sys.exit(1)
 
     sys.exit(0)
