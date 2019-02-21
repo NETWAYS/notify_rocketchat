@@ -6,7 +6,7 @@ This plugin will allow you to send notifications from Icinga directly to your Ro
 ## Example usage
 
 ```
-./notify_rocketchat.py --chatuser icinga --chatpassword icinga --chaturl "https://example.com" --chatchannel general --message 'Test notification'
+./notify_rocketchat.py --user icinga --password icinga --url "https://example.com" --channel general --message 'Test notification'
 ```
 
 ### Icinga Notification Command Definition
@@ -16,10 +16,10 @@ object NotificationCommand "Notify Rocket.Chat" {
     import "plugin-notification-command"
     command = [ PluginDir + "/notify_rocketchat.py" ]
     arguments += {
-        "--chatchannel" = "$notify_rocketchat_channel$"
-        "--chatpassword" = "$notify_rocketchat_password$"
-        "--chaturl" = "$notify_rocketchat_url$"
-        "--chatuser" = "$notify_rocketchat_user$"
+        "--channel" = "$notify_rocketchat_channel$"
+        "--password" = "$notify_rocketchat_password$"
+        "--url" = "$notify_rocketchat_url$"
+        "--user" = "$notify_rocketchat_user$"
         "--message" = "$notify_rocketchat_message$"
     }
 }
