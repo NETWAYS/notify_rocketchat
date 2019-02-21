@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# notify_rocketchat.py | (c) 2019 NETWAYS GmbH | GPLv2+
+
 import json
 import sys
 import urllib2
