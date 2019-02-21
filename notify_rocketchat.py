@@ -5,55 +5,77 @@ import sys
 import urllib2
 import ssl
 import argparse
+import logging
+import os
 
-# Setup the required arguments to run the notification script
+logger = logging.getLogger(os.path.basename(sys.argv[0]))
+
+
 def parse_args():
-    parser = argparse.ArgumentParser(description='Arguments for Rocket.Chat notifications')
-    parser.add_argument('--chaturl', help='Rocket.Chat Url', required=True)
-    parser.add_argument('--chatuser', help='Rocket.Chat User', required=True)
-    parser.add_argument('--chatpassword', help='Rocket.Chat User Password', required=True)
-    parser.add_argument('--chatchannel', help='Rocket.Chat Notification Channel', required=True)
+    """Setup the required arguments to run the notification script
+
+    :return: args
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--url', help='Rocket.Chat Url', required=True)
+    parser.add_argument('--user', help='Rocket.Chat User', required=True)
+    parser.add_argument('--password', help='Rocket.Chat User Password', required=True)
+    parser.add_argument('--channel', help='Rocket.Chat Notification Channel', required=True)
     parser.add_argument('--message', help='The notification message send by Icinga 2', required=True)
 
-    args = parser.parse_args()
-    return args
+    parser.add_argument('--verbose', '-v', help='Verbose output', action='store_true', default=False)
+
+    return parser.parse_args()
+
 
 def web_response(request):
-    response = urllib2.urlopen(request, context=create_ctx())
-    data = json.load(response)
-    
-    if valid_result(data) == False:
-        return False
+    try:
+        response = urllib2.urlopen(request, context=create_ctx())
+        return json.load(response)
+    except urllib2.HTTPError as e:
+        # Message and Raise Pattern
+        logger.debug(e, exc_info=True)
+        raise
 
-    return data
 
 def chat_login(args):
-    request = create_request(args.chaturl + '/api/v1/login')
-    content = { 'user': args.chatuser, 'password': args.chatpassword }
-    request.add_data(json.dumps(content))
+    request = create_request(args.url + '/api/v1/login')
+    request.add_data(json.dumps({
+        'user': args.user, 'password': args.password
+    }))
 
-    data = web_response(request)
+    response = web_response(request)
 
-    if data == False:
-        print('Rocket.Chat Authentication error. Please verify Url and Credentials')
-        return False
+    try:
+        if response[u'status'] == u'success':
+            return response[u'data']
+    except KeyError:
+        pass
 
-    return data[u'data']
+    raise RuntimeError('Could not login')
+
 
 def chat_message(data, args):
-    request = create_request(args.chaturl + '/api/v1/chat.postMessage')
+    request = create_request(args.url + '/api/v1/chat.postMessage')
     request.add_header('X-Auth-Token', data[u'authToken'])
     request.add_header('X-User-Id', data[u'userId'])
-    content = { 'text': args.message, 'channel': args.chatchannel }
-    request.add_data(json.dumps(content))
 
-    data = web_response(request)
+    request.add_data(json.dumps({
+        'text': args.message,
+        'channel': args.channel
 
-    if data == False:
-        print('Unable to write chat message to server')
-        return False
+    }))
 
-    return True
+    response = web_response(request)
+
+    try:
+        if response[u'success'] is True:
+            return response
+    except KeyError:
+        pass
+
+    raise RuntimeError('Could not write message')
+
 
 def create_ctx():
     ctx = ssl.create_default_context()
@@ -62,6 +84,7 @@ def create_ctx():
 
     return ctx
 
+
 def create_request(url):
     request = urllib2.Request(url)
     request.add_header('Accept', 'application/json')
@@ -69,23 +92,38 @@ def create_request(url):
 
     return request
 
-def valid_result(data):
-    if u'status' in data and data[u'status'] != 'success':
-        return False
 
-    if u'success' in data and data[u'success'] != True:
-        return False
+def main():
+    args = parse_args()
 
-    return True
+    # https://docs.python.org/2/library/logging.html#logrecord-attributes
+    logging.basicConfig(format='%(name)s [%(levelname)s]: %(message)s')
+
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
+
+    try:
+        user = chat_login(args)
+        try:
+            chat_message(user, args)
+        except urllib2.HTTPError:
+            logging.error('Could not write message to channel "%s"', args.channel)
+    except urllib2.HTTPError:
+        logging.error('Could not login with user "%s"', args.user)
+    except urllib2.URLError:
+        logging.error('Could not connect to %s', args.url)
+    except RuntimeError as e:
+        logging.error(e)
+
+    if sys.exc_info() != (None, None, None):
+        return 1
+
+    logger.info('Sent %d bytes to "%s"', len(args.message), args.channel)
+
+    return 0
+
 
 if __name__ == "__main__":
-    args = parse_args()
-    data = chat_login(args)
-
-    if data == False:
-        sys.exit(1)
-
-    if chat_message(data, args) == False:
-        sys.exit(1)
-
-    sys.exit(0)
+    sys.exit(main())
