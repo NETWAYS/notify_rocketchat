@@ -34,5 +34,5 @@ $notification.type$ $host.name$ is $host.state$ $icinga.long_date_time$ $host.ou
 ### Service Notification Message example
 
 ```
-$notification.type$ $host.display_name$,$service.name$ is $service.state$ $icinga.long_date_time$ $service.output$
+$notification.type$ $host.display_name$.$service.name$ is $service.state$ $icinga.long_date_time$ $service.output$
 ```
