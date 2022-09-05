@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # notify_rocketchat.py | (c) 2019 NETWAYS GmbH | GPLv2+
 
 import json
 import sys
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import ssl
 import argparse
 import logging
@@ -32,9 +32,9 @@ def parse_args():
 
 def web_response(request):
     try:
-        response = urllib2.urlopen(request, context=create_ctx())
+        response = urllib.request.urlopen(request, context=create_ctx())
         return json.load(response)
-    except urllib2.HTTPError as e:
+    except urllib.error.HTTPError as e:
         # Message and Raise Pattern
         logger.debug(e, exc_info=True)
         raise
@@ -42,15 +42,15 @@ def web_response(request):
 
 def chat_login(args):
     request = create_request(args.url + '/api/v1/login')
-    request.add_data(json.dumps({
+    request.data = (json.dumps({
         'user': args.user, 'password': args.password
-    }))
+    })).encode()
 
     response = web_response(request)
 
     try:
-        if response[u'status'] == u'success':
-            return response[u'data']
+        if response['status'] == 'success':
+            return response['data']
     except KeyError:
         pass
 
@@ -59,19 +59,19 @@ def chat_login(args):
 
 def chat_message(data, args):
     request = create_request(args.url + '/api/v1/chat.postMessage')
-    request.add_header('X-Auth-Token', data[u'authToken'])
-    request.add_header('X-User-Id', data[u'userId'])
+    request.add_header('X-Auth-Token', data['authToken'])
+    request.add_header('X-User-Id', data['userId'])
 
-    request.add_data(json.dumps({
+    request.data = (json.dumps({
         'text': args.message,
         'channel': args.channel
 
-    }))
+    })).encode()
 
     response = web_response(request)
 
     try:
-        if response[u'success'] is True:
+        if response['success'] is True:
             return response
     except KeyError:
         pass
@@ -88,7 +88,7 @@ def create_ctx():
 
 
 def create_request(url):
-    request = urllib2.Request(url)
+    request = urllib.request.Request(url)
     request.add_header('Accept', 'application/json')
     request.add_header('Content-Type', 'application/json')
 
@@ -98,7 +98,6 @@ def create_request(url):
 def main():
     args = parse_args()
 
-    # https://docs.python.org/2/library/logging.html#logrecord-attributes
     logging.basicConfig(format='%(name)s [%(levelname)s]: %(message)s')
 
     if args.verbose:
@@ -110,11 +109,11 @@ def main():
         user = chat_login(args)
         try:
             chat_message(user, args)
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             logging.error('Could not write message to channel "%s"', args.channel)
-    except urllib2.HTTPError:
+    except urllib.error.HTTPError:
         logging.error('Could not login with user "%s"', args.user)
-    except urllib2.URLError:
+    except urllib.error.URLError:
         logging.error('Could not connect to %s', args.url)
     except RuntimeError as e:
         logging.error(e)
