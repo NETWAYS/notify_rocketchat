@@ -10,6 +10,8 @@ import argparse
 import logging
 import os
 
+
+VERSION = '1.0.0'
 logger = logging.getLogger(os.path.basename(sys.argv[0]))
 
 
@@ -18,7 +20,8 @@ def parse_args():
 
     :return: args
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description= "notify_rocketchat (Version: %s)" % (VERSION))
+
     parser.add_argument('--url', help='Rocket.Chat Url', required=True)
     parser.add_argument('--user', help='Rocket.Chat User', required=True)
     parser.add_argument('--password', help='Rocket.Chat User Password', required=True)
