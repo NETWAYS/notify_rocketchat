@@ -1,0 +1,9 @@
+# pylint config
+[FORMAT]
+good-names=e
+[MESSAGES CONTROL]
+disable=fixme,
+        line-too-long,
+        missing-function-docstring,
+        missing-class-docstring,
+        consider-using-f-string
