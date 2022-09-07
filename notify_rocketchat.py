@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
-# notify_rocketchat.py | (c) 2019 NETWAYS GmbH | GPLv2+
+"""
+notify_rocketchat.py | (c) 2019 NETWAYS GmbH | GPLv2+
+
+This plugin will allow you to send notifications from Icinga directly to your Rocket.Chat Server.
+"""
 
 import json
 import sys
-import urllib.request, urllib.error, urllib.parse
+import urllib.request
+import urllib.error
+import urllib.parse
 import ssl
 import argparse
 import logging
@@ -16,11 +22,12 @@ logger = logging.getLogger(os.path.basename(sys.argv[0]))
 
 
 def parse_args():
-    """Setup the required arguments to run the notification script
+    """
+    Setup the required arguments to run the notification script
 
     :return: args
     """
-    parser = argparse.ArgumentParser(description= "notify_rocketchat (Version: %s)" % (VERSION))
+    parser = argparse.ArgumentParser(description= f"notify_rocketchat (Version: {VERSION})")
 
     parser.add_argument('--url', help='Rocket.Chat Url', required=True)
     parser.add_argument('--user', help='Rocket.Chat User', required=True)
@@ -34,6 +41,13 @@ def parse_args():
 
 
 def web_response(request):
+    """
+    Make the actual request to the endpoint
+
+    :return: parsed JSON
+    """
+    # pylint: disable=consider-using-with
+    # TODO: use context manager?
     try:
         response = urllib.request.urlopen(request, context=create_ctx())
         return json.load(response)
@@ -44,6 +58,12 @@ def web_response(request):
 
 
 def chat_login(args):
+    """
+    Login to Rocket.Chat
+
+    :return: dict containing X-Auth-Token and X-User-Id
+    """
+
     request = create_request(args.url + '/api/v1/login')
     request.data = (json.dumps({
         'user': args.user, 'password': args.password
@@ -61,6 +81,15 @@ def chat_login(args):
 
 
 def chat_message(data, args):
+    """
+    Send message to Rocket.Chat
+
+    :param: dict containing X-Auth-Token and X-User-Id
+    :param: args Object containing url, message and channel attributes
+
+    :return: HTTP Response
+    """
+
     request = create_request(args.url + '/api/v1/chat.postMessage')
     request.add_header('X-Auth-Token', data['authToken'])
     request.add_header('X-User-Id', data['userId'])
@@ -83,6 +112,9 @@ def chat_message(data, args):
 
 
 def create_ctx():
+    """
+    Return a new SSLContext object with default settings
+    """
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -91,6 +123,11 @@ def create_ctx():
 
 
 def create_request(url):
+    """
+    Create urllib Request
+
+    :param: url for the request
+    """
     request = urllib.request.Request(url)
     request.add_header('Accept', 'application/json')
     request.add_header('Content-Type', 'application/json')
@@ -99,6 +136,9 @@ def create_request(url):
 
 
 def main():
+    """
+    CLI Entrypoint
+    """
     args = parse_args()
 
     logging.basicConfig(format='%(name)s [%(levelname)s]: %(message)s')
