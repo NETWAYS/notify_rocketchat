@@ -1,28 +1,23 @@
-name: test
+name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on: [push, pull_request]
 
 jobs:
-  build:
-
+  gitHubActionForPytest:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.9 ]
-
+        python-version: [3.9]
+    name: GitHub Action
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
+    - name: Checkout
+      uses: actions/checkout@v3
     - name: Install dependencies
       run: |
         python -m pip install -r requirements-dev.txt
     - name: Lint
-      continue-on-error: true
       run: |
         make lint
-    - name: Test
+    - name: Unittest
       run: |
-        make test
+        make coverage
